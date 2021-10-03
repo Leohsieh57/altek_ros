@@ -56,4 +56,4 @@ $ sudo udevadm control --reload-rules
 
 
 ## Hardware setting
-![](https://github.com/Leohsieh57/altek_ros/tree/master/image/setting.jpg)
+![](https://github.com/Leohsieh57/altek_ros/blob/master/image/setting.jpg)
