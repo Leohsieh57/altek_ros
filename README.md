@@ -56,4 +56,4 @@ $ sudo udevadm control --reload-rules
 
 
 ## Hardware setting
-![](https://github.com/wowyunDBL/pyCVTest_ub/blob/master/Image/setting.jpg)# altek_ros
+![](https://github.com/Leohsieh57/altek_ros/tree/master/image/setting.jpg)
