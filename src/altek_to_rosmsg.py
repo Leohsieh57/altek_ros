@@ -48,6 +48,10 @@ numpy_type_to_cvtype.update(dict((v, k) for (k, v) in numpy_type_to_cvtype.items
 
 lut_path = rospy.get_param('altek/path/find_lut')
 img_path = rospy.get_param('altek/path/save_img')
+
+if not os.path.exists(img_path):
+    os.mkdir(img_path)
+
 img_path = os.path.join(img_path, datetime.now().strftime("%d-%m-%Y %H:%M:%S"))
 os.mkdir(img_path)
 
