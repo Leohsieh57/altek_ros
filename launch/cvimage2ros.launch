@@ -1,0 +1,12 @@
+<launch>
+  <node pkg="image_transport" type="republish" name="raw_to_compressed" args="raw in:=/Altek/color/image_raw/ compressed out:=/Altek/color/image_raw"/>
+  <!--node pkg="image_transport" type="republish" name="raw_to_compressedDepth"
+   args="raw in:=/Altek/depth/image_rect_raw/ compressedDepth out:=/Altek/depth/image_rect_raw"/-->
+  <node pkg="altek_ros" type="altek_to_rosmsg.py" name="altek_to_rosmsg" output="screen"/>
+  <param name="altek/path/find_lut" type="string" value="$(find altek_ros)/lut/" /> 
+  <param name="altek/path/save_img" type="string" value="$(find altek_ros)/Image" />
+
+
+  <node pkg="tf" type="static_transform_publisher" name="camLink_link" args="0.26 0 0.30 0 0 0 base_link camera_link 20" />
+
+</launch>
