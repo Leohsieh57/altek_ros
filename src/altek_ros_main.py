@@ -20,7 +20,7 @@ gMainVer = "[py - 20210922]"
 
 gDistInMin = 200
 gDistInMax = 5000
-dev = 202 #202: default, 1: two more camera and manual set to 1.
+dev = rospy.get_param('altek/video_port') #202: default, 1: two more camera and manual set to 1.
 cnt = 10
 g_SaveDist = 0
 g_wait_ms = 1
@@ -49,11 +49,12 @@ lut_path = rospy.get_param('altek/path/find_lut')
 img_path = rospy.get_param('altek/path/save_img')
 save_data = rospy.get_param('altek/option/save_data')
 
-if not os.path.exists(img_path):
+if not os.path.exists(img_path) and save_data:
     os.mkdir(img_path)
 
 img_path = os.path.join(img_path, datetime.now().strftime("%d-%m-%Y %H:%M:%S"))
-os.mkdir(img_path)
+if save_data:
+    os.mkdir(img_path)
 
 path_dict = {
     path_key: os.path.join(img_path, path_key) 
@@ -65,8 +66,9 @@ path_dict = {
 
 wait_for_publish_cmd = True
 
-for key, value in path_dict.items():
-    os.makedirs(value)
+if save_data:
+    for key, value in path_dict.items():
+        os.makedirs(value)
 
 def CV2msg(cv_image):
     image_message = cv2_to_imgmsg(cv_image, encoding="passthrough")
@@ -328,6 +330,7 @@ if __name__ == "__main__":
     while wait_for_publish_cmd and not rospy.is_shutdown():
         rate.sleep()
 
+    rospy.loginfo("Start publish ROS topic! ")
     if cap.isOpened() and not rospy.is_shutdown():
         cnt = 0
         opencv_cfg(cap, g_mode)
