@@ -1,19 +1,21 @@
 <launch>
   <node pkg="altek_ros" type="altek_ros_initiate_camera" name="altek_ros_initiate_camera" output="screen"/>
   <node pkg="image_transport" type="republish" name="raw_to_compressed" args="raw in:=/Altek/color/image_raw/ compressed out:=/Altek/color/image_raw"/>
-  <!--node pkg="image_transport" type="republish" name="raw_to_compressedDepth"
-   args="raw in:=/Altek/depth/image_rect_raw/ compressedDepth out:=/Altek/depth/image_rect_raw"/-->
+  <node pkg="image_transport" type="republish" name="raw_to_compressedDepth"
+   args="raw in:=/Altek/depth/image_rect_raw/ compressedDepth out:=/Altek/depth/image_rect_raw"/>
   <node pkg="altek_ros" type="altek_ros_main.py" name="altek_ros_main" output="screen"/>
-  <arg name="open_app" value="false" />
+  <arg name="open_app" default="false" />
   <param name="altek/path/find_lut" type="string" value="$(find altek_ros)/lut/" /> 
   <param name="altek/path/save_img" type="string" value="$(find altek_ros)/output" />
   <param name="altek/path/bash_cmd" type="string" value="$(find altek_ros)/2_openapp.sh" />
-  <param name="altek/option/save_data" type="bool" value="true" />
+  <param name="altek/option/save_data" type="bool" value="false" />
   <param name="altek/option/open_app" type="bool" value="$(arg open_app)" />
+  <param name="altek/video_port" type="int" value="202" />
   <param name="altek/password" type="string"
-   value="********************************************************************" />
+   value="**********************************************"/>
 
 
   <node pkg="tf" type="static_transform_publisher" name="camLink_link" args="0.26 0 0.30 0 0 0 base_link camera_link 20" />
+  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find altek_ros)/rviz/show_images.rviz" />
 
 </launch>

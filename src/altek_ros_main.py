@@ -383,7 +383,7 @@ if __name__ == "__main__":
                 msgColor = CV2msg(fBGR)
                 msgColor.header.stamp.secs = now.secs
                 msgColor.header.stamp.nsecs = now.nsecs
-                msgDepth.header.frame_id = 'camera_link'
+                msgColor.header.frame_id = 'camera_link'
                 pubColor.publish(msgColor)
 
                 print('publishing')

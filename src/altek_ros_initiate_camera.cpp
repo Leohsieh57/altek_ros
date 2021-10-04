@@ -22,11 +22,11 @@ int main(int argc, char** argv){
         n.getParam("altek/path/bash_cmd", bash_path);
 
         string cmd = "echo '" + pw + "' | sudo -S bash "+bash_path;
-        ROS_INFO("Initialting Camera.. ");
         system(cmd.c_str());
         
     }
 
+    ROS_INFO("Initialting Camera.. ");
     ServiceClient client = n.serviceClient<altek_ros::start_publish>("altek_ros/start_publish");
     altek_ros::start_publish srv;
     client.call(srv);
