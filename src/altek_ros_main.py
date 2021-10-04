@@ -1,8 +1,8 @@
-#! /usr/bin/env python3
+#!/usr/bin/env python3
 
-'''ros utils'''
 import os
 import rospy
+from altek_ros.srv import *
 from datetime import datetime
 from sensor_msgs.msg import Image, CameraInfo, NavSatFix, CompressedImage
 
@@ -11,7 +11,6 @@ import numpy as np
 import time
 import threading
 from queue import Queue
-
 # 20210922 #
 # support task run
 # 20210917 #
@@ -48,6 +47,7 @@ numpy_type_to_cvtype.update(dict((v, k) for (k, v) in numpy_type_to_cvtype.items
 
 lut_path = rospy.get_param('altek/path/find_lut')
 img_path = rospy.get_param('altek/path/save_img')
+save_data = rospy.get_param('altek/option/save_data')
 
 if not os.path.exists(img_path):
     os.mkdir(img_path)
@@ -62,6 +62,8 @@ path_dict = {
             'depth_raw', 'color_npy', 'depth_npy'
         )
 }
+
+wait_for_publish_cmd = True
 
 for key, value in path_dict.items():
     os.makedirs(value)
@@ -155,7 +157,7 @@ def PixelCvt_Dist2Depth(Inframe, width, height, InMin, mapping):
 
 def CheckCamera(cap, dev, cnt):
     # Check camera open status
-    while not cap.isOpened():
+    while not cap.isOpened() and not rospy.is_shutdown():
         cv2.waitKey(g_wait_1s)
         cap = cv2.VideoCapture(dev, cv2.CAP_ANY)
         print("Wait for opening camera...")
@@ -275,122 +277,131 @@ def th_showimg():
             # fBGR = np.concatenate((fBGRnv21, fBGRdt), axis=1)
             q_d.put(fBGRdt)
             q_rgb.put(fBGRnv21)
-            fn = str(fnIndex).zfill(6)
+
+            if save_data:
+                fn = str(fnIndex).zfill(6)
 
 
-            fcv = open(os.path.join(path_dict['color_raw'], fn+'.raw'),'wb')
-            fcv.write(ftmp)
-            fcv.close()
+                fcv = open(os.path.join(path_dict['color_raw'], fn+'.raw'),'wb')
+                fcv.write(ftmp)
+                fcv.close()
 
-            fcvd = open(os.path.join(path_dict['depth_raw'], fn+'.raw'),'wb')
-            fcvd.write(fdist)
-            fcvd.close()
+                fcvd = open(os.path.join(path_dict['depth_raw'], fn+'.raw'),'wb')
+                fcvd.write(fdist)
+                fcvd.close()
 
-            np.save(os.path.join(path_dict['depth_npy'], fn+'.npy'), fBGRdt)
-            np.save(os.path.join(path_dict['color_npy'], fn+'.npy'), fBGRnv21)
+                np.save(os.path.join(path_dict['depth_npy'], fn+'.npy'), fBGRdt)
+                np.save(os.path.join(path_dict['color_npy'], fn+'.npy'), fBGRnv21)
 
-            cv2.imwrite(os.path.join(path_dict['depth_img'], fn+'.png'), fBGRdt)
-            cv2.imwrite(os.path.join(path_dict['color_img'], fn+'.png'), fBGRnv21)
+                cv2.imwrite(os.path.join(path_dict['depth_img'], fn+'.png'), fBGRdt)
+                cv2.imwrite(os.path.join(path_dict['color_img'], fn+'.png'), fBGRnv21)
 
-            print("Write frame_cv.raw")
+                print("Write frame_cv.raw")
 
-            fnIndex+=1
+                fnIndex+=1
 
+def wait_for_cmd(msg):
+    global wait_for_publish_cmd
+    wait_for_publish_cmd = False
+    return wait_for_publish_cmd
 
 # show versions
-ShowVersions()
+if __name__ == "__main__":
+    ShowVersions()
 
-rospy.init_node("cv_2_rosmsg", anonymous=True)
-pubDepth = rospy.Publisher("/Altek/depth/image_rect_raw", Image, queue_size=100)
-subDepth_altek = rospy.Subscriber("/Altek/depth/image_rect_raw", Image, cbDepth_altek)
+    rospy.init_node("altek_ros", anonymous=True)
+    pubDepth = rospy.Publisher("/Altek/depth/image_rect_raw", Image, queue_size=100)
+    pubColor = rospy.Publisher("/Altek/color/image_raw", Image, queue_size=100)
 
-pubColor = rospy.Publisher("/Altek/color/image_raw", Image, queue_size=100)
-subColor_altek = rospy.Subscriber("/Altek/color/image_raw/compressed", CompressedImage, cbColor_altek) 
-#subColor_altek = rospy.Subscriber("/Altek/color/image_raw", Image, cbColor_altek)
+    s = rospy.Service('altek_ros/start_publish', start_publish, wait_for_cmd, buff_size=1)
 
 
-# select camera, 0, or 1, or ...
-cap = cv2.VideoCapture(dev, cv2.CAP_ANY)
-ret = CheckCamera(cap, dev, cnt)
+    # select camera, 0, or 1, or ...
+    cap = cv2.VideoCapture(dev, cv2.CAP_ANY)
+    ret = CheckCamera(cap, dev, cnt)
 
-q = Queue()
-q_rgb = Queue()
-q_d = Queue()
+    q = Queue()
+    q_rgb = Queue()
+    q_d = Queue()
 
-if cap.isOpened():
-    cnt = 0
-    opencv_cfg(cap, g_mode)
+    rate = rospy.Rate(5)
+    while wait_for_publish_cmd and not rospy.is_shutdown():
+        rate.sleep()
 
-    #LoadDepthLUT_Table()
-    LoadColorLUT_Table()
-    get_opencv_cfg()
-    
-    table_size = gDistInMax - gDistInMin + 1
-    mappinglist = [0]*65536 #table_size
-    for i in range(0, table_size):
-        mappinglist[i] = round(i * 1023 / (gDistInMax - gDistInMin))
-    # converting list to array
-    mapping = np.array(mappinglist)
-    ColorLUT_table_np = np.array(ColorLUT_table)
-    #tic1 = tic2 = 0
-    
-    t = threading.Thread(target = th_showimg)
-    t.start()
-    
-    while(not rospy.is_shutdown()):
+    if cap.isOpened() and not rospy.is_shutdown():
+        cnt = 0
+        opencv_cfg(cap, g_mode)
 
-        if g_mode == 1:
-
-            fDepth = q_d.get()
-            # cv2.namedWindow('Distance', 1)
-            # cv2.imshow('Distance', fBGR)
-
-            '''cvt to rosmsg'''
-            now = rospy.get_rostime()
-            msgDepth = CV2msg(fDepth)
-            msgDepth.header.stamp.secs = now.secs
-            msgDepth.header.stamp.nsecs = now.nsecs
-            msgDepth.header.frame_id = 'camera_link'
-            pubDepth.publish(msgDepth)
+        #LoadDepthLUT_Table()
+        LoadColorLUT_Table()
+        get_opencv_cfg()
         
-        else:
-            fDepth = q_d.get()
-            fBGR = q_rgb.get()
+        table_size = gDistInMax - gDistInMin + 1
+        mappinglist = [0]*65536 #table_size
+        for i in range(0, table_size):
+            mappinglist[i] = round(i * 1023 / (gDistInMax - gDistInMin))
+        # converting list to array
+        mapping = np.array(mappinglist)
+        ColorLUT_table_np = np.array(ColorLUT_table)
+        #tic1 = tic2 = 0
+        
+        t = threading.Thread(target = th_showimg)
+        t.start()
+        
+        while(not rospy.is_shutdown()):
 
-            '''cvt to rosmsg'''
-            now = rospy.get_rostime()
-            msgDepth = CV2msg(fDepth)
-            msgDepth.header.stamp.secs = now.secs
-            msgDepth.header.stamp.nsecs = now.nsecs
-            msgDepth.header.frame_id = 'camera_link'
-            pubDepth.publish(msgDepth)
+            if g_mode == 1:
 
-            msgColor = CV2msg(fBGR)
-            msgColor.header.stamp.secs = now.secs
-            msgColor.header.stamp.nsecs = now.nsecs
-            msgDepth.header.frame_id = 'camera_link'
-            pubColor.publish(msgColor)
+                fDepth = q_d.get()
+                # cv2.namedWindow('Distance', 1)
+                # cv2.imshow('Distance', fBGR)
+
+                '''cvt to rosmsg'''
+                now = rospy.get_rostime()
+                msgDepth = CV2msg(fDepth)
+                msgDepth.header.stamp.secs = now.secs
+                msgDepth.header.stamp.nsecs = now.nsecs
+                msgDepth.header.frame_id = 'camera_link'
+                pubDepth.publish(msgDepth)
             
-        # exit while loop when press q
-        ch = cv2.waitKey(g_wait_ms)
-        if ch& 0xFF == 27: #ESC key
-            g_IsStop = 1
-            break
-        elif ch& 0xFF == ord('s'):
-            g_SaveDist = 1
+            else:
+                fDepth = q_d.get()
+                fBGR = q_rgb.get()
+
+                '''cvt to rosmsg'''
+                now = rospy.get_rostime()
+                msgDepth = CV2msg(fDepth)
+                msgDepth.header.stamp.secs = now.secs
+                msgDepth.header.stamp.nsecs = now.nsecs
+                msgDepth.header.frame_id = 'camera_link'
+                pubDepth.publish(msgDepth)
+
+                msgColor = CV2msg(fBGR)
+                msgColor.header.stamp.secs = now.secs
+                msgColor.header.stamp.nsecs = now.nsecs
+                msgDepth.header.frame_id = 'camera_link'
+                pubColor.publish(msgColor)
+                
+            # exit while loop when press q
+            ch = cv2.waitKey(g_wait_ms)
+            if ch& 0xFF == 27: #ESC key
+                g_IsStop = 1
+                break
+            elif ch& 0xFF == ord('s'):
+                g_SaveDist = 1
+            
+            cnt=cnt+1
+
+    else:
+        print("Open camera fail!")
         
-        cnt=cnt+1
+    # wait thread stop.
+    t.join()
+    # Release camera
+    cap.release()
+    # Release queue buffer
+    q_rgb.put(0)
+    q_d.put(0)
 
-else:
-    print("Open camera fail!")
-    
-# wait thread stop.
-t.join()
-# Release camera
-cap.release()
-# Release queue buffer
-q_rgb.put(0)
-q_d.put(0)
-
-# Close all OpenCV windows
-cv2.destroyAllWindows()
+    # Close all OpenCV windows
+    cv2.destroyAllWindows()

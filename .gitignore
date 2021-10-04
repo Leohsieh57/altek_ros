@@ -6,6 +6,8 @@
 *.bag
 output
 
+altek_ros.launch
+
 # Compiled Object files
 *.slo
 *.lo

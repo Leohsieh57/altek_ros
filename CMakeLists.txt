@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.8.2)
 project(altek_ros)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
@@ -10,6 +10,9 @@ project(altek_ros)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
+  std_msgs
+  message_generation
+  message_runtime
 )
 
 ## System dependencies are found with CMake's conventions
@@ -46,18 +49,18 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
+#add_message_files(
 #   FILES
 #   Message1.msg
 #   Message2.msg
 # )
 
 ## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
+ add_service_files(
+   FILES
+   start_publish.srv
 #   Service2.srv
-# )
+)
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -67,10 +70,10 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs  # Or other packages containing msgs
-# )
+generate_messages(
+  DEPENDENCIES
+  std_msgs  # Or other packages containing msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -106,6 +109,7 @@ catkin_package(
 #  LIBRARIES pyCVTest_ub
 #  CATKIN_DEPENDS roscpp rospy
 #  DEPENDS system_lib
+   CATKIN_DEPENDS message_runtime roscpp rospy std_msgs
 )
 
 ###########
@@ -203,3 +207,6 @@ include_directories(
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+
+add_executable(altek_ros_initiate_camera src/altek_ros_initiate_camera.cpp)
+target_link_libraries(altek_ros_initiate_camera ${catkin_LIBRARIES})
