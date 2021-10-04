@@ -70,8 +70,8 @@ if save_data:
     for key, value in path_dict.items():
         os.makedirs(value)
 
-def CV2msg(cv_image):
-    image_message = cv2_to_imgmsg(cv_image, encoding="passthrough")
+def CV2msg(cv_image, encoding="passthrough"):
+    image_message = cv2_to_imgmsg(cv_image, encoding)
     return image_message
 
 def cbDepth_altek(msg):
@@ -271,18 +271,19 @@ def th_showimg():
             
             fdist = frame_np[h_rgb:h*2,:w]
             h_d=int(g_h_dist)
-            imgSize = (w,h_d)
-            frame_npd = np.frombuffer(fdist, dtype=np.uint16).reshape(imgSize)
-            fBGRdt = np.zeros((h_d,w,3), np.uint8)
-            PixelCvt_Dist2RGBnp(frame_npd, w, h_d, fBGRdt, gDistInMin, gDistInMax, mapping)
+            frame_npd = np.frombuffer(fdist, dtype=np.uint16).reshape(h_d, w)
+            #fBGRdt = np.zeros((h_d,w,3), np.uint8)
+            #PixelCvt_Dist2RGBnp(frame_npd, w, h_d, fBGRdt, gDistInMin, gDistInMax, mapping)
             # merge depth + image.
             # fBGR = np.concatenate((fBGRnv21, fBGRdt), axis=1)
-            q_d.put(fBGRdt)
+            q_d.put(frame_npd)
             q_rgb.put(fBGRnv21)
 
             if save_data:
                 fn = str(fnIndex).zfill(6)
 
+                fBGRdt = np.zeros((h_d,w,3), np.uint8)
+                PixelCvt_Dist2RGBnp(frame_npd, w, h_d, fBGRdt, gDistInMin, gDistInMax, mapping)
 
                 fcv = open(os.path.join(path_dict['color_raw'], fn+'.raw'),'wb')
                 fcv.write(ftmp)
@@ -384,6 +385,8 @@ if __name__ == "__main__":
                 msgColor.header.stamp.nsecs = now.nsecs
                 msgDepth.header.frame_id = 'camera_link'
                 pubColor.publish(msgColor)
+
+                print('publishing')
                 
             # exit while loop when press q
             ch = cv2.waitKey(g_wait_ms)
