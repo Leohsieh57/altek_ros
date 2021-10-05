@@ -15,7 +15,7 @@ gMainVer = "[py - 20210922]"
 
 gDistInMin = 200
 gDistInMax = 5000
-dev = 203 #202: default, 1: two more camera and manual set to 1.
+dev = 202 #202: default, 1: two more camera and manual set to 1.
 cnt = 10
 g_SaveDist = 0
 g_wait_ms = 1

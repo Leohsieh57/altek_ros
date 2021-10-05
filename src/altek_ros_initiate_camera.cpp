@@ -28,8 +28,19 @@ int main(int argc, char** argv){
 
     ROS_INFO("Initialting Camera.. ");
     ServiceClient client = n.serviceClient<altek_ros::start_publish>("altek_ros/start_publish");
+    
+    ros::Rate rate(1);
     altek_ros::start_publish srv;
-    client.call(srv);
+    for(uint nFail = 0; !client.call(srv); nFail++){
+        if(nFail < 10)
+            ROS_WARN("Waiting for response from server.. ");
+
+        else{
+            ROS_ERROR("Can't receive reponse from server, aborting.. "); 
+            exit(-1);
+        }
+        rate.sleep();
+    }
     
     return 0;              
 }

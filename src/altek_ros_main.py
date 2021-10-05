@@ -386,7 +386,6 @@ if __name__ == "__main__":
                 msgColor.header.frame_id = 'camera_link'
                 pubColor.publish(msgColor)
 
-                print('publishing')
                 
             # exit while loop when press q
             ch = cv2.waitKey(g_wait_ms)
